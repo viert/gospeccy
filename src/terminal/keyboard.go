@@ -83,5 +83,7 @@ func keyaction(dataList []keyDesc, action glfw.Action) {
 
 func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 	data, found := keyMap[key]
-	keyaction(data, action)
+	if found {
+		keyaction(data, action)
+	}
 }
