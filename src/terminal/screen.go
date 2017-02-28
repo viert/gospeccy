@@ -67,8 +67,7 @@ func InitScreenWindow(mem []byte) {
 	}
 
 	createTexture()
-
-	setupScene()
+    setupScene()
 }
 
 func createTexture() {
