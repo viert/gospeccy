@@ -17,7 +17,7 @@ var (
 )
 
 const (
-	tactLength = 285.7142857142857 * 3
+	tactLength = 285.7142857142857 * 2
 )
 
 func memoryRead(addr uint16) byte {
@@ -53,19 +53,19 @@ func init() {
 
 func startSpectrum() {
 	// create standard maskable interrupt
-	go func() {
+/*	go func() {
 		c := time.Tick(20 * time.Millisecond)
 		for range c {
 			cpuContext.Int(255)
 		}
 	}()
-
+*/
 	lastStop := time.Now()
 
 	var tstates uint64
 
 	for {
-		tstates = cpuContext.ExecuteTStates(50000)
+		tstates = cpuContext.ExecuteTStates(35000)
 		timedelta = time.Now().Sub(lastStop)
 		targetsleep = time.Duration(tactLength * float64(tstates))
 		realsleep = time.Duration(targetsleep) - timedelta
@@ -73,6 +73,7 @@ func startSpectrum() {
 			time.Sleep(realsleep)
 		}
 		lastStop = time.Now()
+        cpuContext.Int(255)
 	}
 }
 
