@@ -14,10 +14,12 @@ var (
 	timedelta   time.Duration
 	targetsleep time.Duration
 	realsleep   time.Duration
+	inDebug     bool
 )
 
 const (
-	tactLength = 285.7142857142857 * 2
+	tactLength     = 285.7142857142857 * 2
+	tStatesToBreak = 35000
 )
 
 func memoryRead(addr uint16) byte {
@@ -43,6 +45,7 @@ func ioWrite(portNum uint16, data byte) {
 
 func init() {
 	memory = make([]byte, 65536)
+	inDebug = false
 	cpuContext = z80.NewContext(true)
 	cpuContext.MemoryRead = memoryRead
 	cpuContext.MemoryWrite = memoryWrite
@@ -52,28 +55,25 @@ func init() {
 }
 
 func startSpectrum() {
-	// create standard maskable interrupt
-/*	go func() {
-		c := time.Tick(20 * time.Millisecond)
-		for range c {
-			cpuContext.Int(255)
-		}
-	}()
-*/
+	srv := NewServer(cpuContext)
+	go srv.startWeb("localhost", 5335)
 	lastStop := time.Now()
-
-	var tstates uint64
-
+	var tStates uint64 = 0
+	var accTstates uint64 = 0
 	for {
-		tstates = cpuContext.ExecuteTStates(35000)
+		tStates = cpuContext.ExecuteTStates(tStatesToBreak)
+		accTstates += tStates
 		timedelta = time.Now().Sub(lastStop)
-		targetsleep = time.Duration(tactLength * float64(tstates))
+		targetsleep = time.Duration(tactLength * float64(tStates))
 		realsleep = time.Duration(targetsleep) - timedelta
 		if realsleep > 0 {
 			time.Sleep(realsleep)
 		}
 		lastStop = time.Now()
-        cpuContext.Int(255)
+		if accTstates >= tStatesToBreak {
+			accTstates -= tStatesToBreak
+			cpuContext.Int(255)
+		}
 	}
 }
 
