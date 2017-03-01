@@ -1,6 +1,7 @@
 package spectrum
 
 import (
+	"fmt"
 	"github.com/viert/z80"
 	"os"
 	"port"
@@ -8,18 +9,20 @@ import (
 	"time"
 )
 
-var (
-	cpuContext  *z80.Context
-	memory      []byte
-	timedelta   time.Duration
-	targetsleep time.Duration
-	realsleep   time.Duration
-	inDebug     bool
+const (
+	EM_STEP = iota
+	EM_RUN
 )
 
-const (
-	tactLength     = 285.7142857142857 * 2
-	tStatesToBreak = 35000
+var (
+	cpuContext   *z80.Context
+	memory       []byte
+	timedelta    time.Duration
+	targetsleep  time.Duration
+	realsleep    time.Duration
+	inDebug      bool
+	emulatorMode int
+	resume       chan bool
 )
 
 func memoryRead(addr uint16) byte {
@@ -46,11 +49,13 @@ func ioWrite(portNum uint16, data byte) {
 func init() {
 	memory = make([]byte, 65536)
 	inDebug = false
+	resume = make(chan bool)
 	cpuContext = z80.NewContext(true)
 	cpuContext.MemoryRead = memoryRead
 	cpuContext.MemoryWrite = memoryWrite
 	cpuContext.IoRead = ioRead
 	cpuContext.IoWrite = ioWrite
+	emulatorMode = EM_RUN
 	terminal.InitScreenWindow(memory)
 }
 
@@ -61,17 +66,27 @@ func startSpectrum() {
 	var tStates uint64 = 0
 	var accTstates uint64 = 0
 	for {
-		tStates = cpuContext.ExecuteTStates(tStatesToBreak)
+		switch emulatorMode {
+		case EM_RUN:
+			tStates = cpuContext.ExecuteTStates(z80.T_STATES_TO_BREAK)
+			if tStates == 0 {
+				fmt.Println("0 tstates while ExecuteTStates, switching to step mode")
+				emulatorMode = EM_STEP
+			}
+		case EM_STEP:
+			<-resume
+			tStates = cpuContext.Execute()
+		}
 		accTstates += tStates
 		timedelta = time.Now().Sub(lastStop)
-		targetsleep = time.Duration(tactLength * float64(tStates))
+		targetsleep = time.Duration(z80.T_LENGTH * float64(tStates))
 		realsleep = time.Duration(targetsleep) - timedelta
 		if realsleep > 0 {
 			time.Sleep(realsleep)
 		}
 		lastStop = time.Now()
-		if accTstates >= tStatesToBreak {
-			accTstates -= tStatesToBreak
+		if accTstates >= z80.T_STATES_TO_BREAK {
+			accTstates -= z80.T_STATES_TO_BREAK
 			cpuContext.Int(255)
 		}
 	}

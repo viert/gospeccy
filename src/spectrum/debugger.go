@@ -54,6 +54,7 @@ func NewServer(cpu *z80.Context) *Server {
 	router.HandleFunc("/breakpoints", server.listBreakpointsHandler).Methods("GET")
 	router.HandleFunc("/breakpoints/{addr}", server.addBreakpointHandler).Methods("POST")
 	router.HandleFunc("/breakpoints/{addr}", server.removeBreakpointHandler).Methods("DELETE")
+	router.HandleFunc("/control/{command}", server.controlHandler).Methods("POST")
 
 	http.Handle("/", router)
 	return server
@@ -143,23 +144,13 @@ func (s *Server) listBreakpointsHandler(w http.ResponseWriter, r *http.Request) 
 
 func (s *Server) addBreakpointHandler(w http.ResponseWriter, r *http.Request) {
 	addr := mux.Vars(r)["addr"]
-	if addr == "enable" {
-		s.cpu.SetBPMode(true)
-		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, "{\"breakpoints\": true}")
-	} else if addr == "disable" {
-		s.cpu.SetBPMode(false)
-		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, "{\"breakpoints\": false}")
-	} else {
-		iAddr, err := strconv.ParseInt(addr, 16, 16)
-		if err != nil {
-			http.Error(w, "Error in breakpoint address", 400)
-		}
-		s.cpu.AddBreakpoint(uint16(iAddr))
-		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, fmt.Sprintf("{\"breakpoint\":\"%s\"}", addr))
+	iAddr, err := strconv.ParseInt(addr, 16, 16)
+	if err != nil {
+		http.Error(w, "Error in breakpoint address", 400)
 	}
+	s.cpu.AddBreakpoint(uint16(iAddr))
+	w.Header().Set("Content-Type", "application/json")
+	io.WriteString(w, fmt.Sprintf("{\"breakpoint\":\"%s\"}", addr))
 }
 
 func (s *Server) removeBreakpointHandler(w http.ResponseWriter, r *http.Request) {
@@ -171,6 +162,33 @@ func (s *Server) removeBreakpointHandler(w http.ResponseWriter, r *http.Request)
 	s.cpu.RemoveBreakpoint(uint16(iAddr))
 	w.Header().Set("Content-Type", "application/json")
 	io.WriteString(w, fmt.Sprintf("{\"breakpoint\":\"%s\"}", addr))
+}
+
+func (s *Server) controlHandler(w http.ResponseWriter, r *http.Request) {
+	command := mux.Vars(r)["command"]
+	switch command {
+	case "stop":
+		s.cpu.Stop()
+	case "step":
+		if emulatorMode != EM_STEP {
+			fmt.Println("Setting emulator to STEP MODE")
+			emulatorMode = EM_STEP
+		}
+		resume <- true
+	case "resume":
+		s.cpu.Resume()
+		if emulatorMode != EM_RUN {
+			emulatorMode = EM_RUN
+			fmt.Println("Setting emulator to RUN MODE")
+			resume <- true
+		}
+	case "enable_bp":
+		s.cpu.SetBPMode(true)
+	case "disable_bp":
+		s.cpu.SetBPMode(false)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	io.WriteString(w, fmt.Sprintf("{\"status\": \"ok\",\"command\":\"%s\"}", command))
 }
 
 func (s *Server) startWeb(host string, port int) {
