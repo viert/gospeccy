@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	DEFAULT_DISASM_LINES = 25
+	DEFAULT_DISASM_LINES = 50
 )
 
 type Server struct {
@@ -19,22 +19,25 @@ type Server struct {
 }
 
 type Registers struct {
-	PC   string `json:"PC"`
-	SP   string `json:"SP"`
-	AF   string `json:"AF"`
-	BC   string `json:"BC"`
-	DE   string `json:"DE"`
-	HL   string `json:"HL"`
-	IX   string `json:"IX"`
-	IY   string `json:"IY"`
-	AFx  string `json:"AF+"`
-	BCx  string `json:"BC+"`
-	DEx  string `json:"DE+"`
-	HLx  string `json:"HL+"`
-	R    string `json:"R"`
-	I    string `json:"I"`
-	IFF1 bool   `json:"IFF1"`
-	IFF2 bool   `json:"IFF2"`
+	PC                 string `json:"PC"`
+	SP                 string `json:"SP"`
+	AF                 string `json:"AF"`
+	BC                 string `json:"BC"`
+	DE                 string `json:"DE"`
+	HL                 string `json:"HL"`
+	IX                 string `json:"IX"`
+	IY                 string `json:"IY"`
+	AFx                string `json:"AF+"`
+	BCx                string `json:"BC+"`
+	DEx                string `json:"DE+"`
+	HLx                string `json:"HL+"`
+	R                  string `json:"R"`
+	I                  string `json:"I"`
+	IFF1               bool   `json:"IFF1"`
+	IFF2               bool   `json:"IFF2"`
+	IM                 byte   `json:"IM"`
+	BreakpointsEnabled bool   `json:"breakpoints_enabled"`
+	State              string `json:"cpu_state"`
 }
 
 type DisasmEntry struct {
@@ -48,6 +51,10 @@ func NewServer(cpu *z80.Context) *Server {
 	router := mux.NewRouter()
 	router.HandleFunc("/dump/registers", server.registersHandler).Methods("GET")
 	router.HandleFunc("/dump/memory", server.memoryHandler).Methods("GET")
+	router.HandleFunc("/breakpoints", server.listBreakpointsHandler).Methods("GET")
+	router.HandleFunc("/breakpoints/{addr}", server.addBreakpointHandler).Methods("POST")
+	router.HandleFunc("/breakpoints/{addr}", server.removeBreakpointHandler).Methods("DELETE")
+
 	http.Handle("/", router)
 	return server
 }
@@ -71,6 +78,9 @@ func (s *Server) registersHandler(w http.ResponseWriter, r *http.Request) {
 	regs.I = fmt.Sprintf("%02X", dump.I)
 	regs.IFF1 = dump.IFF1
 	regs.IFF2 = dump.IFF2
+	regs.State = s.cpu.State()
+	regs.IM = s.cpu.IM
+	regs.BreakpointsEnabled = s.cpu.GetBPMode()
 	data, err := json.Marshal(regs)
 	if err != nil {
 		http.Error(w, "Error marshalling data", 500)
@@ -118,6 +128,49 @@ func (s *Server) memoryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	io.WriteString(w, string(data))
+}
+
+func (s *Server) listBreakpointsHandler(w http.ResponseWriter, r *http.Request) {
+	breakpoints := s.cpu.GetBreakpoints()
+	data, err := json.Marshal(breakpoints)
+	if err != nil {
+		http.Error(w, "Error marshalling data", 500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	io.WriteString(w, string(data))
+}
+
+func (s *Server) addBreakpointHandler(w http.ResponseWriter, r *http.Request) {
+	addr := mux.Vars(r)["addr"]
+	if addr == "enable" {
+		s.cpu.SetBPMode(true)
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, "{\"breakpoints\": true}")
+	} else if addr == "disable" {
+		s.cpu.SetBPMode(false)
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, "{\"breakpoints\": false}")
+	} else {
+		iAddr, err := strconv.ParseInt(addr, 16, 16)
+		if err != nil {
+			http.Error(w, "Error in breakpoint address", 400)
+		}
+		s.cpu.AddBreakpoint(uint16(iAddr))
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, fmt.Sprintf("{\"breakpoint\":\"%s\"}", addr))
+	}
+}
+
+func (s *Server) removeBreakpointHandler(w http.ResponseWriter, r *http.Request) {
+	addr := mux.Vars(r)["addr"]
+	iAddr, err := strconv.ParseInt(addr, 16, 16)
+	if err != nil {
+		http.Error(w, "Error in breakpoint address", 400)
+	}
+	s.cpu.RemoveBreakpoint(uint16(iAddr))
+	w.Header().Set("Content-Type", "application/json")
+	io.WriteString(w, fmt.Sprintf("{\"breakpoint\":\"%s\"}", addr))
 }
 
 func (s *Server) startWeb(host string, port int) {
