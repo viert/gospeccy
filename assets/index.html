@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html ng-app="gsApplication">
+<head lang="en">
+    <meta charset="UTF-8">
+
+    <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:300,400,700" rel="stylesheet">
+    <link rel="stylesheet" href="bs-darkly.min.css"/>
+    <link rel="stylesheet" href="style.css"/>
+    <script type="application/javascript" src="angular.min.js"></script>
+    <script type="application/javascript" src="app.js"></script>
+    <title>GoSpeccy Debugger</title>
+</head>
+<body>
+    <div class="container" ng-controller="MainCtrl">
+        <div class="control">
+            <div class="row">
+                <div class="col-sm-4">
+                    <button class="btn btn-primary">{{ triggerText }}</button>
+                    <button class="btn btn-secondary">step</button>
+                </div>
+            </div>
+        </div>
+        <div class="main">
+            <div class="row">
+                <div class="col-sm-6 disasm-container">
+                    <div class="row t-line"  ng-class="{ 'disasm-addr-bpoint': isBreakpoint(line.addr), 'disasm-addr-active': line.addr == r.PC }" ng-repeat="line in disasm.entries">
+                        <div class="col-sm-2 t-cell disasm-addr">
+                            <span class="inline-addr" ng-bind="line.addr"></span>
+                        </div>
+                        <div class="col-sm-5 t-cell disasm-code" ng-bind-html="line.code"></div>
+                        <div class="col-sm-3 t-cell disasm-bytes">
+                            <span class="disasm-onebyte" ng-repeat="byte in line.bytes track by $index" ng-bind="byte"></span>
+                        </div>
+                        <div class="col-sm-2 t-cell disasm-chars">
+                            <span class="disasm-onechar" ng-repeat="char in line.chars track by $index" ng-bind-html="char"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 flow-container">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <h4>Registers</h4>
+                            <div class="row">
+                                <div class="col-sm-3 regname"><span class="hl hl-reg">PC</span></div>
+                                <div class="col-sm-3 regvalue">{{ r.PC }}</div>
+                                <div class="col-sm-3 regname"><span class="hl hl-reg">SP</span></div>
+                                <div class="col-sm-3 regvalue">{{ r.SP }}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-3 regname"><span class="hl hl-reg">AF</span></div>
+                                <div class="col-sm-3 regvalue">{{ r.AF }}</div>
+                                <div class="col-sm-3 regname"><span class="hl hl-reg">AF'</span></div>
+                                <div class="col-sm-3 regvalue">{{ r.AFx }}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-3 regname"><span class="hl hl-reg">BC</span></div>
+                                <div class="col-sm-3 regvalue">{{ r.BC }}</div>
+                                <div class="col-sm-3 regname"><span class="hl hl-reg">BC'</span></div>
+                                <div class="col-sm-3 regvalue">{{ r.BCx }}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-3 regname"><span class="hl hl-reg">DE</span></div>
+                                <div class="col-sm-3 regvalue">{{ r.DE }}</div>
+                                <div class="col-sm-3 regname"><span class="hl hl-reg">DE'</span></div>
+                                <div class="col-sm-3 regvalue">{{ r.DEx }}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-3 regname"><span class="hl hl-reg">HL</span></div>
+                                <div class="col-sm-3 regvalue">{{ r.HL }}</div>
+                                <div class="col-sm-3 regname"><span class="hl hl-reg">HL'</span></div>
+                                <div class="col-sm-3 regvalue">{{ r.HLx }}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-3 regname"><span class="hl hl-reg">IX</span></div>
+                                <div class="col-sm-3 regvalue">{{ r.IX }}</div>
+                                <div class="col-sm-3 regname"><span class="hl hl-reg">I</span></div>
+                                <div class="col-sm-3 regvalue">{{ r.I }}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-3 regname"><span class="hl hl-reg">IY</span></div>
+                                <div class="col-sm-3 regvalue">{{ r.IY }}</div>
+                                <div class="col-sm-3 regname"><span class="hl hl-reg">R</span></div>
+                                <div class="col-sm-3 regvalue">{{ r.R }}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-3 regname">IFF1</div>
+                                <div class="col-sm-3 regvalue">{{ r.IFF1 }}</div>
+                                <div class="col-sm-3 regname">IM</div>
+                                <div class="col-sm-3 regvalue">{{ r.IM }}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-3 regname">IFF2</div>
+                                <div class="col-sm-3 regvalue">{{ r.IFF2 }}</div>
+                                <div class="col-sm-6"></div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <h4>Stack</h4>
+                            <div class="row t-line" ng-repeat="sentry in r.stack track by $index">
+                                <div class="col-sm-6 t-cell"><span class="hl hl-hex">{{ sentry.addr }}</span></div>
+                                <div class="col-sm-6 t-cell">{{ sentry.data }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                        </div>
+                    </div>
+                    <div class="bpoints">
+                        <h4>Breakpoints</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

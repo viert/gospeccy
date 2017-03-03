@@ -1,0 +1,115 @@
+h1,h2,h3,h4,h5 {
+    margin-top: 0;
+}
+
+.container {
+    width: 1170px !important;
+}
+
+.disasm-container, .reg {
+    font-family: 'Source Code Pro', Monaco, monospace;
+    overflow-y: auto;
+    height: 80vh;
+}
+
+.t-cell {
+    border-left: 1px solid #444;
+    border-top: 1px solid #444;
+}
+
+.t-cell:last-child {
+    border-right: 1px solid #444;
+}
+
+.t-line:last-child .t-cell {
+    border-bottom: 1px solid #444;
+}
+
+.disasm-onebyte, .disasm-onechar {
+    padding-right: 8px;
+}
+.disasm-onebyte {
+    padding-right: 8px;
+}
+
+.disasm-addr {
+    text-align: right;
+    position: relative;
+}
+
+.disasm-addr-active {
+    background-color: #333333;
+}
+
+.disasm-addr-active .disasm-addr::after {
+    content: '\25b6';
+    position: absolute;
+    top: 0;
+    left: 26px;
+}
+
+.disasm-addr-bpoint .disasm-addr::before {
+    content: '\25c9';
+    position: absolute;
+    top: 0;
+    left: 6px;
+    color: #a61c3f;
+}
+
+.disasm-addr-active .inline-addr {
+    font-weight: bold;
+    color: #ffff00;
+}
+
+.regname {
+    font-weight: bold;
+}
+
+.regvalue {
+    text-align: right;
+}
+
+.control {
+    padding: 20px 0;
+}
+
+.control .btn {
+    text-transform: uppercase;
+}
+
+.hl.hl-cmd {
+    color: white;
+}
+
+.hl.hl-reg {
+    color: #a61c3f;
+    font-weight: bold;
+}
+
+.hl.hl-prn {
+    color: gray;
+}
+
+.hl.hl-flag {
+    color: #ffff00;
+}
+
+.hl.hl-hex {
+    color: #55ace1;
+}
+
+.reg, .bpoints, .stack {
+    margin-bottom: 20px;
+}
+
+.control {
+    height: 15vh;
+}
+
+.main {
+    height: 80vh;
+}
+
+.flow-container > .row {
+    margin-bottom: 8px;
+}
