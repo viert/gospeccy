@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
 
     <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:300,400,700" rel="stylesheet">
-    <link rel="stylesheet" href="bs-darkly.min.css"/>
-    <link rel="stylesheet" href="style.css"/>
-    <script type="application/javascript" src="angular.min.js"></script>
-    <script type="application/javascript" src="app.js"></script>
+    <link rel="stylesheet" href="/bs-darkly.min.css"/>
+    <link rel="stylesheet" href="/style.css"/>
+    <script type="application/javascript" src="/angular.min.js"></script>
+    <script type="application/javascript" src="/app.js?cache=54"></script>
     <title>GoSpeccy Debugger</title>
 </head>
 <body>
@@ -15,8 +15,8 @@
         <div class="control">
             <div class="row">
                 <div class="col-sm-4">
-                    <button class="btn btn-primary">{{ triggerText }}</button>
-                    <button class="btn btn-secondary">step</button>
+                    <button class="btn btn-primary" ng-click="triggerRunmode()">{{ triggerText }}</button>
+                    <button class="btn btn-secondary" ng-click="step()">step</button>
                 </div>
             </div>
         </div>
@@ -36,7 +36,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-sm-6 flow-container">
+                <div class="col-sm-5 col-lg-offset-1 flow-container">
                     <div class="row">
                         <div class="col-sm-6">
                             <h4>Registers</h4>
@@ -94,7 +94,7 @@
                                 <div class="col-sm-6"></div>
                             </div>
                         </div>
-                        <div class="col-sm-6">
+                        <div class="col-sm-5 col-sm-offset-1">
                             <h4>Stack</h4>
                             <div class="row t-line" ng-repeat="sentry in r.stack track by $index">
                                 <div class="col-sm-6 t-cell"><span class="hl hl-hex">{{ sentry.addr }}</span></div>
