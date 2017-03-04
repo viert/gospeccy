@@ -2,7 +2,6 @@ angular.module('gsApplication', [])
     .controller('MainCtrl', [ '$scope', '$http', '$sce', '$timeout', function($scope, $http, $sce, $timeout) {
         window.debug = { scope: $scope };
 
-        var urlPrefix = "";
         var POLL_PERIOD = 250;
         $scope.disasm = {};
         $scope.r = {};
@@ -36,8 +35,7 @@ angular.module('gsApplication', [])
         };
 
         $scope.isBreakpoint = function(addr) {
-            // TODO
-            return false;
+            return addr in $scope.breakpoints;
         };
 
         $scope.shouldAddDisassembly = function() {
@@ -87,7 +85,7 @@ angular.module('gsApplication', [])
             if (typeof addr === 'number') {
                 addr = addr.toString(16);
             }
-            $http.get(urlPrefix + "/dump/disasm?start=" + addr).then(
+            $http.get("/dump/disasm?start=" + addr).then(
                 function(data) {
                     var incoming = data.data;
                     incoming = $scope.processDisassembly(incoming);
@@ -102,7 +100,7 @@ angular.module('gsApplication', [])
         };
 
         $scope.loadBreakpoints = function() {
-            $http.get(urlPrefix + "/breakpoints").then(
+            $http.get("/breakpoints").then(
                 function(data) {
                     $scope.breakpoints = {};
                     data.data.forEach(function(addr) {
@@ -114,7 +112,7 @@ angular.module('gsApplication', [])
 
         $scope.pollRegisters = function(onLoad) {
             var loadRegisters = function(callback) {
-                $http.get(urlPrefix + "/dump/registers").then(
+                $http.get("/dump/registers").then(
                     function(data) {
                         $scope.r = data.data;
                         if ($scope.r.mode === "run") {
@@ -148,7 +146,16 @@ angular.module('gsApplication', [])
         };
 
         $scope.stop = function() {
-            $http.post(urlPrefix + "/control/stop", {})
+            $http.post("/control/stop", {})
+                .then(function() {
+                    $scope.pollRegisters(function() {
+                        $scope.loadDisassembly($scope.r.PC);
+                    });
+                });
+        };
+
+        $scope.reset = function() {
+            $http.post("/control/reset", {})
                 .then(function() {
                     $scope.pollRegisters(function() {
                         $scope.loadDisassembly($scope.r.PC);
@@ -157,7 +164,7 @@ angular.module('gsApplication', [])
         };
 
         $scope.step = function() {
-            $http.post(urlPrefix + "/control/step", {})
+            $http.post("/control/step", {})
                 .then(function() {
                     $scope.pollRegisters(function() {
                         $scope.shouldAddDisassembly();
@@ -166,49 +173,57 @@ angular.module('gsApplication', [])
         };
 
         $scope.resume = function() {
-            $http.post(urlPrefix + "/control/resume", {})
+            $http.post("/control/resume", {})
                 .then(function() {
                     $scope.pollRegisters()
                 });
         };
 
         $scope.enableBreakpoints = function() {
-            $http.post(urlPrefix + "/control/enable_bp", {})
+            $http.post("/control/enable_bp", {})
                 .then(function() {
                     $scope.pollRegisters();
                 });
         };
 
         $scope.disableBreakpoints = function() {
-            $http.post(urlPrefix + "/control/disable_bp", {})
+            $http.post("/control/disable_bp", {})
                 .then(function() {
                     $scope.pollRegisters();
                 });
         };
 
         $scope.addBreakpoint = function(addr) {
-            $http.post(urlPrefix + "/breakpoints/" + addr, {}).then(
+            $http.post("/breakpoints/" + addr, {}).then(
                 function(data) {
                     $scope.loadBreakpoints();
                 }
             )
+        };
+
+        $scope.triggerBreakpoint = function(addr) {
+            if (addr in $scope.breakpoints) {
+                $scope.removeBreakpoint(addr);
+            } else {
+                $scope.addBreakpoint(addr);
+            }
         };
 
         $scope.removeBreakpoint = function(addr) {
             if (!(addr in $scope.breakpoints)) {
                 return;
             }
-            $http.delete(urlPrefix + "/breakpoints/" + addr, {}).then(
+            $http.delete("/breakpoints/" + addr, {}).then(
                 function(data) {
                     $scope.loadBreakpoints();
                 }
             )
         };
 
-
-
         $scope.triggerText = "stop";
+        $scope.breakpoints = {};
         $scope.loadDisassembly(0);
+        $scope.loadBreakpoints();
         $scope.pollRegisters(
             function() {
                 $scope.loadDisassembly($scope.r.PC);

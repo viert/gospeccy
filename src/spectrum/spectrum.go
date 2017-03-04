@@ -20,7 +20,6 @@ var (
 	timedelta    time.Duration
 	targetsleep  time.Duration
 	realsleep    time.Duration
-	inDebug      bool
 	emulatorMode int
 	resume       chan bool
 )
@@ -48,15 +47,26 @@ func ioWrite(portNum uint16, data byte) {
 
 func init() {
 	memory = make([]byte, 65536)
-	inDebug = false
 	resume = make(chan bool)
 	cpuContext = z80.NewContext(true)
 	cpuContext.MemoryRead = memoryRead
 	cpuContext.MemoryWrite = memoryWrite
 	cpuContext.IoRead = ioRead
 	cpuContext.IoWrite = ioWrite
+	cpuContext.SetBPMode(true)
 	emulatorMode = EM_RUN
 	terminal.InitScreenWindow(memory)
+}
+
+func resetSpectrum() {
+	saveEMode := emulatorMode
+	emulatorMode = EM_STEP
+	cpuContext.Stop()
+	cpuContext.Reset()
+	for i := 16384; i < 65536; i++ {
+		memory[i] = 0
+	}
+	emulatorMode = saveEMode
 }
 
 func startSpectrum() {

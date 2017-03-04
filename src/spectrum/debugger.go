@@ -93,7 +93,7 @@ func (s *Server) registersHandler(w http.ResponseWriter, r *http.Request) {
 	var sLowB, sHighB, stackPointer uint16
 
 	regs := new(Registers)
-	dump := s.cpu.LatestDump
+	dump := s.cpu.GetRegisterDump()
 	regs.AF = fmt.Sprintf("%04X", dump.AF)
 	regs.BC = fmt.Sprintf("%04X", dump.BC)
 	regs.DE = fmt.Sprintf("%04X", dump.DE)
@@ -129,7 +129,7 @@ func (s *Server) registersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	regs.Stack = make([]StackEntry, stackSize)
 
-	stackPointer = s.cpu.LatestDump.SP
+	stackPointer = dump.SP
 	for i = 0; i < int(stackSize); i++ {
 		regs.Stack[i].Addr = fmt.Sprintf("%04X", stackPointer)
 		sLowB = uint16(memory[stackPointer])
@@ -197,7 +197,11 @@ func (s *Server) disasmHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) listBreakpointsHandler(w http.ResponseWriter, r *http.Request) {
 	breakpoints := s.cpu.GetBreakpoints()
-	data, err := json.Marshal(breakpoints)
+	result := make([]string, len(breakpoints))
+	for i := 0; i < len(breakpoints); i++ {
+		result[i] = fmt.Sprintf("%04X", breakpoints[i])
+	}
+	data, err := json.Marshal(result)
 	if err != nil {
 		http.Error(w, "Error marshalling data", 500)
 		return
@@ -248,6 +252,10 @@ func (s *Server) controlHandler(w http.ResponseWriter, r *http.Request) {
 		s.cpu.SetBPMode(true)
 	case "disable_bp":
 		s.cpu.SetBPMode(false)
+	case "reset":
+		resetSpectrum()
+	default:
+		http.Error(w, fmt.Sprintf("Unknown command '%s'", command), 400)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	io.WriteString(w, fmt.Sprintf("{\"status\": \"ok\",\"command\":\"%s\"}", command))

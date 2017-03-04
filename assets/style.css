@@ -35,6 +35,7 @@ h1,h2,h3,h4,h5 {
 .disasm-addr {
     text-align: right;
     position: relative;
+    cursor: pointer;
 }
 
 .disasm-addr-active {
@@ -75,6 +76,7 @@ h1,h2,h3,h4,h5 {
 
 .control .btn {
     text-transform: uppercase;
+    margin-right: 4px;
 }
 
 .hl.hl-cmd {
